@@ -1,0 +1,55 @@
+version: '3'
+
+services:
+  postgresql:
+    image: postgres:latest
+    container_name: pg-docker   
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=docker     
+    volumes:      
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql    
+    restart: always
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+    - "2181:2181"
+    depends_on:
+    - postgresql
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+    - "9092:9092"    
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181      
+      KAFKA_CREATE_TOPICS: "business.ecommerce.egen.order.v1:1:1"    
+    depends_on:
+    - zookeeper
+  
+  newrelic-agent:   
+    build:
+      context: .
+    ports:
+    - "8080:8081"
+    environment:
+      NEW_RELIC_LICENSE_KEY: 'c136b72399c869c9ba9951eadaac84f3f0b0NRAL'
+  nrinfra:    
+    environment:
+      NRIA_DISPLAY_NAME: 'dockerformac'
+      NRIA_LICENSE_KEY: 'c136b72399c869c9ba9951eadaac84f3f0b0NRAL'
+    image: newrelic/infrastructure:latest
+    privileged: true
+    network_mode: host
+    pid: host
+    volumes:
+    - /:/host:ro  
+    - /var/run/docker.sock:/var/run/docker.sock
+    
+    
+
+ 
